@@ -7,7 +7,9 @@ use serenity::prelude::*;
 use std::env;
 mod calculations;
 mod commands;
+
 const BOT_PREFIX: &str = "*";
+
 struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
@@ -15,10 +17,17 @@ impl EventHandler for Handler {
         if message.content.starts_with(BOT_PREFIX) {
             match message.content.as_str() {
                 "*primos" => {
-                    let builder = commands::primos();
+                    let menu_builder = commands::primos_menu_message();
                     let _ = message
                         .channel_id
-                        .send_message(context.http(), builder)
+                        .send_message(context.http(), menu_builder)
+                        .await;
+                }
+                "*help" => {
+                    let help_embed = commands::howto();
+                    let _ = message
+                        .channel_id
+                        .send_message(context.http(), help_embed)
                         .await;
                 }
                 &_ => (),
