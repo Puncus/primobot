@@ -1,9 +1,9 @@
 use dotenv::dotenv;
 use serenity::async_trait;
-use serenity::model::channel::Message;
+use serenity::model::channel::{self, Message};
 use serenity::model::gateway::Ready;
-use serenity::prelude::*;
-
+use serenity::model::id::ChannelId;
+use serenity::prelude::{Context, *};
 use std::env;
 mod calculations;
 mod commands;
@@ -17,11 +17,7 @@ impl EventHandler for Handler {
         if message.content.starts_with(BOT_PREFIX) {
             match message.content.as_str() {
                 "*primos" => {
-                    let menu_builder = commands::primos_menu_message();
-                    let _ = message
-                        .channel_id
-                        .send_message(context.http(), menu_builder)
-                        .await;
+                    commands::primos_menu_message(&message, &context).await;
                 }
                 "*help" => {
                     let help_embed = commands::howto();
