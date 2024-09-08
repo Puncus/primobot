@@ -118,15 +118,25 @@ pub fn estimate_primogems(
 
     // handle abyss.
     if three_star_chambers > 0 {
+        // Every 3 chambers gives a 50 primogem bonus, thus line 123
         abyss_primogems = get_abyss_rotation_count(days) * 50 * three_star_chambers
-            + ((three_star_chambers / 3) as u32 * 50);
+            + ((three_star_chambers / 3) * 50);
     }
 
     //handle Imaginarium Theater.
     if imaginarium_stages > 0 {
-        imaginarium_primogems = 60 * imaginarium_stages + ((imaginarium_stages / 3) as u32 * 40);
-        if imaginarium_stages == 8 {
+        // All stages give 60 primos except 3, 6 , 8, 10.
+        imaginarium_primogems = 60 * imaginarium_stages;
+        if imaginarium_stages >= 8 {
             imaginarium_primogems += 60;
+        }
+        // handle bonuses
+        match imaginarium_stages {
+            3 => imaginarium_primogems += 40,
+            6 => imaginarium_primogems += 80,
+            8 => imaginarium_primogems += 140,
+            10 => imaginarium_primogems += 200,
+            _ => (),
         }
     }
 
