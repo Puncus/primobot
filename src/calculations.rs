@@ -102,7 +102,7 @@ pub fn estimate_primogems(
     blessing: bool,
     three_star_chambers: u32,
     imaginarium_stages: u32,
-) -> (u32, String) {
+) -> String {
     // total estimation.
     let mut primogem_estimation: u32 = 0;
     // All types of primogems.
@@ -150,23 +150,22 @@ pub fn estimate_primogems(
     // Done in multiple push_str due to format and readability. Putting the whole string in a single format!() somehow
     // messes up the UI format.
     let mut detailed_wish_estimation = String::new();
-    detailed_wish_estimation.push_str(format!("Daily primogems: {daily_primogems}\n").as_str());
-    detailed_wish_estimation.push_str(format!("Abyss primogems: {abyss_primogems}\n").as_str());
-    detailed_wish_estimation
-        .push_str(format!("Blessing primogems: {blessing_primogems}\n").as_str());
-    detailed_wish_estimation.push_str(format!("Shop wishes: {shop_wishes}\n").as_str());
-    detailed_wish_estimation
-        .push_str(format!("Estimated total primogems: {primogem_estimation}\n").as_str());
     detailed_wish_estimation.push_str(
         format!(
-            "Estimated total wishes: {} and {} primogems",
+            "- Daily primogems: {daily_primogems}\n
+        - Abyss primogems: {abyss_primogems}\n
+        - Imaginarium Theater primogems: {imaginarium_primogems}\n
+        - Blessing primogems: {blessing_primogems}\n
+        - Shop wishes: {shop_wishes}\n
+        *Estimated total primogems: {primogem_estimation}*\n
+        *Estimated total wishes: {} and {} primogems*",
             (primogem_estimation as f64 / 160.0).floor(),
             primogem_estimation % 160
         )
         .as_str(),
     );
 
-    return (primogem_estimation, detailed_wish_estimation);
+    return detailed_wish_estimation;
 }
 pub fn estimation_between_dates(
     start_date: NaiveDate,
@@ -174,7 +173,7 @@ pub fn estimation_between_dates(
     blessing: bool,
     three_star_chambers: u32,
     imaginarium_stages: u32,
-) -> (u32, String) {
+) -> String {
     let days = days_between_dates(start_date, end_date);
     return estimate_primogems(days, blessing, three_star_chambers, imaginarium_stages);
 }
@@ -184,7 +183,7 @@ pub fn estimation_from_today_until(
     blessing: bool,
     three_star_chambers: u32,
     imaginarium_stages: u32,
-) -> (u32, String) {
+) -> String {
     let today: NaiveDate = Local::now().date_naive();
     let days = days_between_dates(today, end_date);
     return estimate_primogems(days, blessing, three_star_chambers, imaginarium_stages);

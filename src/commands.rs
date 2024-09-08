@@ -1,14 +1,36 @@
-use crate::calculations::*;
-use serenity::all::{ButtonStyle, ChannelId, ComponentInteractionDataKind, CreateChannel, EmojiId};
+use crate::calculations::{self, *};
+use serenity::all::{ButtonStyle, ChannelId, ComponentInteractionDataKind, EditMessage};
 use serenity::builder::{
-    CreateButton, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-    CreateMessage, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
+    CreateButton, CreateEmbed, CreateInteractionResponse, CreateMessage, CreateSelectMenu,
+    CreateSelectMenuKind, CreateSelectMenuOption,
 };
 use serenity::futures::StreamExt;
 use serenity::http::CacheHttp;
 use serenity::model::channel::Message;
 use serenity::prelude::Context;
 use std::time::Duration;
+
+// This function updates the message sent by the bot to display the users desired amount of days.
+async fn edit_days_in_message(
+    bot_message: &mut Message,
+    context: &Context,
+    days: u32,
+) -> Result<(), serenity::prelude::SerenityError> {
+    let new_embed = if days > 1 {
+        CreateEmbed::new()
+            .title("Primogem Estimator")
+            .description(format!(
+                "Estimate the minimun amount of primogems you will get in: {} days",
+                days
+            ))
+    } else {
+        CreateEmbed::new()
+            .title("Primogem Estimator")
+            .description("Estimate the minimun amount of primogems you will get in: 1 day")
+    };
+    let builder = EditMessage::new().embed(new_embed);
+    return bot_message.edit(context, builder).await;
+}
 
 pub fn howto() -> CreateMessage {
     let instructions = CreateEmbed::new().title("How to use Primobot").description(
@@ -21,8 +43,8 @@ These parameters include:
     return CreateMessage::new().add_embed(instructions);
 }
 
-fn get_menu_value(interaction: ComponentInteractionDataKind) -> i32 {
-    let mut result: i32 = 0;
+fn get_menu_value(interaction: ComponentInteractionDataKind) -> u32 {
+    let mut result: u32 = 0;
     match interaction {
         ComponentInteractionDataKind::StringSelect { values, .. } => {
             result = values
@@ -38,9 +60,10 @@ fn get_menu_value(interaction: ComponentInteractionDataKind) -> i32 {
     result
 }
 pub async fn primos_menu_message(message: &Message, context: &Context) {
-    let embed = CreateEmbed::new().title("Primogem Estimator").description(
-        "Estimate the minimum amount of primogems you will get in a certain amount of days",
-    );
+    let embed = CreateEmbed::new()
+        .title("Primogem Estimator")
+        .description("Estimate the minimum amount of primogems you will get in: 1 day");
+    let mut days = 1;
 
     // create a message builder that will let us add components before we send it.
     let mut builder = CreateMessage::new().add_embed(embed);
@@ -149,14 +172,19 @@ pub async fn primos_menu_message(message: &Message, context: &Context) {
     );
 
     let channel: ChannelId = message.channel_id;
-    if let Err(error) = channel.send_message(context.http(), builder).await {
-        println!("Encountered: {error}");
-    }
+    let mut bot_message = match channel.send_message(context.http(), builder).await {
+        Ok(sent_message) => sent_message,
+        Err(error) => {
+            println!("Encountered: {error} and couldnt send a message");
+            return;
+        }
+    };
 
     // Interaction handling and value assignment.
     let mut abyss_chambers = 0;
     let mut theater_stages = 0;
     let mut blessing = false;
+    let mut days: u32 = 1;
 
     // Handle all incoming interactions with menus and buttons.
     while let Some(interaction) = serenity::collector::ComponentInteractionCollector::new(context)
@@ -182,29 +210,73 @@ pub async fn primos_menu_message(message: &Message, context: &Context) {
                 theater_stages = get_menu_value(interaction.data.kind);
             }
             "Estimate" => {
-                println!("estimating")
+                let _ = bot_message.delete(&context).await;
+                let title = if days > 1 {
+                    format!("Your estimation for {} days", days)
+                } else {
+                    "Your estimation for 1 day".to_string()
+                };
+                let result_embed =
+                    CreateEmbed::new()
+                        .title(title)
+                        .description(calculations::estimate_primogems(
+                            days,
+                            blessing,
+                            abyss_chambers,
+                            theater_stages,
+                        ));
+                let result_message = CreateMessage::new().add_embed(result_embed);
+                let _ = channel.send_message(context.http(), result_message).await;
             }
-            "+1" => {}
-            "+10" => {}
-            "-10" => {}
-            "-1" => {}
+            "+1" => {
+                days += 1;
+                match edit_days_in_message(&mut bot_message, context, days).await {
+                    Ok(_) => (),
+                    Err(error) => {
+                        println!("Error: {error} occurred.\nHad to delete message");
+                        bot_message.delete(&context).await.unwrap();
+                    }
+                }
+            }
+            "+10" => {
+                days += 10;
+                match edit_days_in_message(&mut bot_message, context, days).await {
+                    Ok(_) => (),
+                    Err(error) => {
+                        println!("Error: {error} occurred.\nHad to delete message");
+                        bot_message.delete(&context).await.unwrap();
+                    }
+                }
+            }
+            "-10" => {
+                if days <= 10 {
+                    days = 1;
+                } else {
+                    days -= 10;
+                };
+                match edit_days_in_message(&mut bot_message, context, days).await {
+                    Ok(_) => (),
+                    Err(error) => {
+                        println!("Error: {error} occurred.\nHad to delete message");
+                        bot_message.delete(&context).await.unwrap();
+                    }
+                }
+            }
+            "-1" => {
+                if days > 1 {
+                    days -= 1;
+                };
+                match edit_days_in_message(&mut bot_message, context, days).await {
+                    Ok(_) => (),
+                    Err(error) => {
+                        println!("Error: {error} occurred.\nHad to delete message");
+                        bot_message.delete(&context).await.unwrap();
+                    }
+                }
+            }
             unexpected => {
                 println!("There was an unexpected interaction: ({component}, {unexpected})")
             }
-        }
-    }
-    println!("after interaction reached");
-
-    // Delete the orig message or there will be dangling components (components that still
-    // exist, but no collector is running so any user who presses them sees an error)
-    match message.delete(&context).await {
-        Err(error) => {
-            println!(
-                "There was an error while trying to delete the original message due to {error}"
-            )
-        }
-        Ok(_) => {
-            println!("Original message should have been deleted by now")
         }
     }
 }
