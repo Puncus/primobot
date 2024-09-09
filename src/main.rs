@@ -51,7 +51,6 @@ async fn main() {
         .event_handler(Handler)
         .await
         .expect("Error creating client");
-    println!("Hello, world!");
     if let Err(error) = bot_client.start().await {
         println!("Error starting due to: {error}");
     }

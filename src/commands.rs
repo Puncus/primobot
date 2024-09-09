@@ -1,10 +1,9 @@
-use crate::calculations::{self, *};
+use crate::calculations::{self};
 use serenity::all::{ButtonStyle, ChannelId, ComponentInteractionDataKind, EditMessage};
 use serenity::builder::{
     CreateButton, CreateEmbed, CreateInteractionResponse, CreateMessage, CreateSelectMenu,
     CreateSelectMenuKind, CreateSelectMenuOption,
 };
-use serenity::futures::StreamExt;
 use serenity::http::CacheHttp;
 use serenity::model::channel::Message;
 use serenity::prelude::Context;
@@ -20,13 +19,13 @@ async fn edit_days_in_message(
         CreateEmbed::new()
             .title("Primogem Estimator")
             .description(format!(
-                "Estimate the minimun amount of primogems you will get in: {} days",
+                "Estimate the minimun amount of primogems you will get in: __**{} days**__",
                 days
             ))
     } else {
         CreateEmbed::new()
             .title("Primogem Estimator")
-            .description("Estimate the minimun amount of primogems you will get in: 1 day")
+            .description("Estimate the minimun amount of primogems you will get in: __**1 day**__")
     };
     let builder = EditMessage::new().embed(new_embed);
     return bot_message.edit(context, builder).await;
@@ -62,7 +61,7 @@ fn get_menu_value(interaction: ComponentInteractionDataKind) -> u32 {
 pub async fn primos_menu_message(message: &Message, context: &Context) {
     let embed = CreateEmbed::new()
         .title("Primogem Estimator")
-        .description("Estimate the minimum amount of primogems you will get in: 1 day");
+        .description("Estimate the minimun amount of primogems you will get in: __**1 day**__");
     let mut days = 1;
 
     // create a message builder that will let us add components before we send it.

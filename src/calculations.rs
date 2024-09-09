@@ -127,9 +127,7 @@ pub fn estimate_primogems(
     if imaginarium_stages > 0 {
         // All stages give 60 primos except 3, 6 , 8, 10.
         imaginarium_primogems = 60 * imaginarium_stages;
-        if imaginarium_stages >= 8 {
-            imaginarium_primogems += 60;
-        }
+
         // handle bonuses
         match imaginarium_stages {
             3 => imaginarium_primogems += 40,
@@ -157,8 +155,8 @@ pub fn estimate_primogems(
         - Imaginarium Theater primogems: {imaginarium_primogems}\n
         - Blessing primogems: {blessing_primogems}\n
         - Shop wishes: {shop_wishes}\n
-        *Estimated total primogems: {primogem_estimation}*\n
-        *Estimated total wishes: {} and {} primogems*",
+        __***Estimated total primogems: {primogem_estimation}***__\n
+        __***Estimated total wishes: {} and {} primogems***__",
             (primogem_estimation as f64 / 160.0).floor(),
             primogem_estimation % 160
         )
