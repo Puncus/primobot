@@ -121,7 +121,6 @@ pub fn estimate_primogems(
     if imaginarium_stages > 0 {
         // All stages give 60 primos except 3, 6 , 8, 10.
         let imaginarium_rotations = get_imaginarium_theater_rotation_count(days);
-        println!("Imaginarium rotations: {imaginarium_rotations}");
         imaginarium_primogems = imaginarium_rotations * 60 * imaginarium_stages;
 
         // handle bonuses
