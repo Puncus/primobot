@@ -18,26 +18,28 @@ pub fn last_day_of_month(year: i32, month: u32) -> u32 {
 pub fn get_abyss_rotation_count(mut days: u32) -> u32 {
     let mut rotation_count: u32 = 0;
     let mut today: DateTime<Local> = Local::now();
-    let mut time_until_next_rotation: u32;
-    while days > 0 {
+    let mut time_until_next_rotation: u32 = if today.day() < 16 {
+        16 - today.day()
+    } else {
+        last_day_of_month(today.year(), today.month()) - today.day() + 16
+    };
+    while days >= time_until_next_rotation {
+        match today.checked_add_days(Days::new(time_until_next_rotation as u64)) {
+            Some(new_date) => {
+                today = new_date;
+                rotation_count += 1;
+                days -= time_until_next_rotation
+            }
+            None => {
+                println!("There was an unexpected error when advancing dates (Abyss)");
+                break;
+            }
+        }
         if today.day() < 16 {
             time_until_next_rotation = 16 - today.day();
         } else {
-            let last_day_of_the_month = last_day_of_month(today.year(), today.month());
-            time_until_next_rotation = last_day_of_the_month - today.day() + 16;
-        }
-
-        if days >= time_until_next_rotation {
-            match today.checked_add_days(Days::new(time_until_next_rotation as u64)) {
-                Some(new_date) => {
-                    today = new_date;
-                    rotation_count += 1;
-                    days -= time_until_next_rotation
-                }
-                None => println!("There was an unexpected error when advancing dates (Abyss)"),
-            }
-        } else {
-            break;
+            time_until_next_rotation =
+                last_day_of_month(today.year(), today.month()) - today.day() + 16;
         }
     }
     return rotation_count;
@@ -49,24 +51,21 @@ pub fn get_abyss_rotation_count(mut days: u32) -> u32 {
 pub fn get_imaginarium_theater_rotation_count(mut days: u32) -> u32 {
     let mut rotation_count: u32 = 0;
     let mut today: DateTime<Local> = Local::now();
-    let mut time_until_next_rotation: u32;
+    let mut time_until_next_rotation =
+        last_day_of_month(today.year(), today.month()) - today.day() + 1;
 
-    while days > 0 {
-        let last_day_of_the_month = last_day_of_month(today.year(), today.month());
-        time_until_next_rotation = last_day_of_the_month - today.day() + 1;
-
-        if days >= time_until_next_rotation {
-            match today.checked_add_days(Days::new(time_until_next_rotation as u64)) {
-                Some(new_date) => {
-                    today = new_date;
-                    rotation_count += 1;
-                    days -= time_until_next_rotation;
-                }
-                None => println!(
-                    "There was an error when trying to advance dates (Imaginarium Theater)"
-                ),
+    while days >= time_until_next_rotation {
+        match today.checked_add_days(Days::new(time_until_next_rotation as u64)) {
+            Some(new_date) => {
+                today = new_date;
+                rotation_count += 1;
+                days -= time_until_next_rotation;
+            }
+            None => {
+                println!("There was an error when trying to advance dates (Imaginarium Theater)")
             }
         }
+        time_until_next_rotation = last_day_of_month(today.year(), today.month()) - today.day() + 1;
     }
     return rotation_count;
 }
@@ -76,23 +75,18 @@ pub fn get_imaginarium_theater_rotation_count(mut days: u32) -> u32 {
 pub fn get_shop_reset_count(mut days: u32) -> u32 {
     let mut reset_count: u32 = 0;
     let mut today: DateTime<Local> = Local::now();
-    let mut time_until_next_reset: u32;
-    while days > 0 {
-        let last_day_of_the_month = last_day_of_month(today.year(), today.month());
-        time_until_next_reset = last_day_of_the_month - today.day() + 1;
-
-        if days >= time_until_next_reset {
-            match today.checked_add_days(Days::new(time_until_next_reset as u64)) {
-                Some(new_date) => {
-                    today = new_date;
-                    reset_count += 1;
-                    days -= time_until_next_reset;
-                }
-                None => println!("There was an unexpected error when advancing dates (shop reset)"),
+    let mut time_until_next_reset: u32 =
+        last_day_of_month(today.year(), today.month()) - today.day() + 1;
+    while days >= time_until_next_reset {
+        match today.checked_add_days(Days::new(time_until_next_reset as u64)) {
+            Some(new_date) => {
+                today = new_date;
+                reset_count += 1;
+                days -= time_until_next_reset;
             }
-        } else {
-            break;
+            None => println!("There was an unexpected error when advancing dates (shop reset)"),
         }
+        time_until_next_reset = last_day_of_month(today.year(), today.month()) - today.day() + 1;
     }
     return reset_count;
 }
@@ -119,21 +113,23 @@ pub fn estimate_primogems(
     // handle abyss.
     if three_star_chambers > 0 {
         // Every 3 chambers gives a 50 primogem bonus, thus line 123
-        abyss_primogems = get_abyss_rotation_count(days) * 50 * three_star_chambers
-            + ((three_star_chambers / 3) * 50);
+        abyss_primogems = get_abyss_rotation_count(days)
+            * ((50 * three_star_chambers) + ((three_star_chambers / 3) * 50));
     }
 
     //handle Imaginarium Theater.
     if imaginarium_stages > 0 {
         // All stages give 60 primos except 3, 6 , 8, 10.
-        imaginarium_primogems = 60 * imaginarium_stages;
+        let imaginarium_rotations = get_imaginarium_theater_rotation_count(days);
+        println!("Imaginarium rotations: {imaginarium_rotations}");
+        imaginarium_primogems = imaginarium_rotations * 60 * imaginarium_stages;
 
         // handle bonuses
         match imaginarium_stages {
-            3 => imaginarium_primogems += 40,
-            6 => imaginarium_primogems += 80,
-            8 => imaginarium_primogems += 140,
-            10 => imaginarium_primogems += 200,
+            3 => imaginarium_primogems += imaginarium_rotations * 40,
+            6 => imaginarium_primogems += imaginarium_rotations * 80,
+            8 => imaginarium_primogems += imaginarium_rotations * 140,
+            10 => imaginarium_primogems += imaginarium_rotations * 200,
             _ => (),
         }
     }
